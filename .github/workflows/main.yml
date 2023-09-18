@@ -1,0 +1,34 @@
+name: Fetch Data and Create Image
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # Run this action every 5 minutes
+
+jobs:
+  fetch-and-create:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requirements.txt
+
+    - name: Fetch data
+      run: python fetch.py
+
+    - name: Create Image if new data
+      run: |
+        NEW_DATA=$(tail -1 sismos_ipma.csv | cut -d, -f1)
+        if [[ "$NEW_DATA" != "$(cat latest_data.txt)" ]]; then
+          python create_image.py
+          echo "$NEW_DATA" > latest_data.txt
+        fi
