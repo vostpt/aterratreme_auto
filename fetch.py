@@ -25,6 +25,8 @@ def transform_location(loc):
     Transforms the location string by replacing full cardinal directions with their 
     abbreviations and removing unnecessary words.
     """
+    if loc is None:
+        return None
     # Define a dictionary for cardinal direction replacements
     directions = {
         "Norte": "N",
@@ -51,8 +53,8 @@ if __name__ == "__main__":
     url = "https://www.ipma.pt/resources.www/rss/comunicados.xml"
     df = fetch_xml_data(url)
 
-    # Filter the DataFrame to only include rows with "Aviso de Sismo" in the Title column
-    df = df[df["Title"].str.contains("Aviso de Sismo", case=False, na=False)]
+   
+
 
     # Extract date_time from the Description column
     df['date_time'] = df['Description'].apply(lambda x: re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x).group(1) if re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x) else None)
