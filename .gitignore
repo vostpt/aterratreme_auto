@@ -5,3 +5,5 @@ assets/._SISMO_TEMPLATE_MODIFIED.png
 ._.gitignore
 .github/workflows/._main.yml
 .github/workflows/._main.yaml
+._create_image.py
+._fetch.py
