@@ -53,7 +53,8 @@ if __name__ == "__main__":
     url = "https://www.ipma.pt/resources.www/rss/comunicados.xml"
     df = fetch_xml_data(url)
 
-   
+    # Filter the DataFrame to only include entries with "Sismo" in the "Title" or "Description"
+    df = df[df['Title'].str.contains("Sismo") | df['Description'].str.contains("Sismo")]
 
 
     # Extract date_time from the Description column
@@ -70,17 +71,18 @@ if __name__ == "__main__":
     df['intensity'] = df['Description'].apply(lambda x: re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x).group(1) if re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x) else None)
     df['intensity'].fillna("Sem info a esta hora", inplace=True)
 
+    df_current = df 
     # Check if "sismos_ipma.csv" exists and read it
     try:
         existing_df = pd.read_csv("sismos_ipma.csv")
         # Compare the most recent data in df with the most recent data in existing_df
-        if df['Title'].iloc[0] != existing_df['Title'].iloc[0]:
+        if df_current['Title'].iloc[0] != existing_df['Title'].iloc[0]:
             # If the most recent data is new, append it to the CSV
-            df.to_csv("sismos_ipma.csv", mode='a', header=False, index=False)
+            df_current.to_csv("sismos_ipma.csv", mode='a', header=False, index=False)
             print("New data found and appended to sismos_ipma.csv.")
         else:
             print("No new data found.")
     except FileNotFoundError:
         # If the CSV file doesn't exist, create it
-        df.to_csv("sismos_ipma.csv", index=False)
+        df_current.to_csv("sismos_ipma.csv", index=False)
         print("sismos_ipma.csv file created.")
