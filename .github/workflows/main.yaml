@@ -34,8 +34,8 @@ jobs:
         fi
     - name: Commit and push if there's new data
       run: |
-        git config --global user.email "your-email@example.com"
-        git config --global user.name "Your Name"
+        git config --global user.email "hello@vost.pt"
+        git config --global user.name "vospt"
         git add sismos_ipma.csv latest_data.txt
         git commit -m "Update data" || echo "No changes to commit"
         git push origin
