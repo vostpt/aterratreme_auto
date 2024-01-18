@@ -3,6 +3,7 @@ name: Fetch Data and Create Image
 on:
   schedule:
     - cron: '*/5 * * * *'  # Run this action every 5 minutes
+  workflow_dispatch:
 
 jobs:
   fetch-and-create:
