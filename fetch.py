@@ -1,9 +1,11 @@
 # fetch.py
 
+
 import requests
 import xml.etree.ElementTree as ET
 import pandas as pd
 import re
+import os
 
 def fetch_xml_data(url):
     """
@@ -56,7 +58,6 @@ if __name__ == "__main__":
     # Filter the DataFrame to only include entries with "Sismo" in the "Title" or "Description"
     df = df[df['Title'].str.contains("Sismo") | df['Description'].str.contains("Sismo")]
 
-
     # Extract date_time from the Description column
     df['date_time'] = df['Description'].apply(lambda x: re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x).group(1) if re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x) else None)
 
@@ -77,12 +78,24 @@ if __name__ == "__main__":
         existing_df = pd.read_csv("sismos_ipma.csv")
         # Compare the most recent data in df with the most recent data in existing_df
         if df_current['Title'].iloc[0] != existing_df['Title'].iloc[0]:
-            # If the most recent data is new, append it to the CSV
-            df_current.to_csv("sismos_ipma.csv", mode='a', header=False, index=False)
-            print("New data found and appended to sismos_ipma.csv.")
+            # Check if the file size exceeds 50MB
+            if os.path.getsize("sismos_ipma.csv") > 50 * 1024 * 1024:  # 50MB in bytes
+                # Find the next available sequential file name
+                i = 1
+                while os.path.exists(f"sismos_ipma_{i}.csv"):
+                    i += 1
+                os.rename("sismos_ipma.csv", f"sismos_ipma_{i}.csv")
+                # Create a new file for new data
+                df_current.to_csv("sismos_ipma.csv", index=False)
+                print(f"File size exceeded 50MB, existing data moved to sismos_ipma_{i}.csv, and new data written to sismos_ipma.csv.")
+            else:
+                # If the file size is within limit, append the data
+                df_current.to_csv("sismos_ipma.csv", mode='a', header=False, index=False)
+                print("New data found and appended to sismos_ipma.csv.")
         else:
             print("No new data found.")
     except FileNotFoundError:
         # If the CSV file doesn't exist, create it
         df_current.to_csv("sismos_ipma.csv", index=False)
         print("sismos_ipma.csv file created.")
+
