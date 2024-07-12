@@ -78,6 +78,7 @@ if __name__ == "__main__":
         existing_df = pd.read_csv("sismos_ipma.csv")
         # Compare the most recent data in df with the most recent data in existing_df
         if df_current['Title'].iloc[0] != existing_df['Title'].iloc[0]:
+            temp_df = pd.concat([df_current, existing_df], ignore_index=True)
             # Check if the file size exceeds 50MB
             if os.path.getsize("sismos_ipma.csv") > 50 * 1024 * 1024:  # 50MB in bytes
                 # Find the next available sequential file name
@@ -86,11 +87,11 @@ if __name__ == "__main__":
                     i += 1
                 os.rename("sismos_ipma.csv", f"sismos_ipma_{i}.csv")
                 # Create a new file for new data
-                df_current.to_csv("sismos_ipma.csv", index=False)
+                temp_df.to_csv("sismos_ipma.csv", index=False)
                 print(f"File size exceeded 50MB, existing data moved to sismos_ipma_{i}.csv, and new data written to sismos_ipma.csv.")
             else:
                 # If the file size is within limit, append the data
-                df_current.to_csv("sismos_ipma.csv", mode='a', header=False, index=False)
+                temp_df.to_csv("sismos_ipma.csv", index=False)
                 print("New data found and appended to sismos_ipma.csv.")
         else:
             print("No new data found.")

@@ -15,6 +15,9 @@ if __name__ == "__main__":
     df = pd.read_csv("sismos_ipma.csv")
     latest_data = df.iloc[0]
 
+    # Print the event for verification
+    print(latest_data)
+
     # Load the image template
     img_path = "assets/SISMO_TEMPLATE_AUTO.png"
     img = Image.open(img_path)
