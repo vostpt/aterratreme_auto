@@ -1,11 +1,13 @@
 # fetch.py
 
 
+from dotenv import load_dotenv
 import requests
 import xml.etree.ElementTree as ET
 import pandas as pd
 import re
 import os
+import mysql.connector
 
 def fetch_xml_data(url):
     """
@@ -51,6 +53,22 @@ def transform_location(loc):
     return loc
 
 if __name__ == "__main__":
+
+    # Loading the sensative information
+    load_dotenv('.env')
+    Host: str = os.getenv('host')
+    User: str = os.getenv('user')
+    Password: str = os.getenv('password')
+    Database: str = os.getenv('database')
+
+    # Conecting to the MySQL server
+    mydb = mysql.connector.connect(
+        host=Host,
+        user=User,
+        password=Password, # Substituir password
+        database=Database
+    )
+
     # Define the XML data source URL
     url = "https://www.ipma.pt/resources.www/rss/comunicados.xml"
     df = fetch_xml_data(url)
@@ -65,7 +83,7 @@ if __name__ == "__main__":
     df['scale'] = df['Description'].apply(lambda x: re.search(r' magnitude (\d+\.\d+) \(Richter\)', x).group(1) if re.search(r' magnitude (\d+\.\d+) \(Richter\)', x) else None)
 
     # Extract location from the Description column and transform it
-    df['location'] = df['Description'].apply(lambda x: re.search(r'localizou a (cerca de .*?)\.', x).group(1) if re.search(r'localizou a (cerca de .*?)\.', x) else None)
+    df['location'] = df['Description'].apply(lambda x: re.search(r'localizou a (cerca de .*?)\.', x).group(1) if re.search(r'localizou a (cerca de .*?)\.', x) else re.search(r'localizou (próximo de .*?)\.', x).group(1) if re.search(r'localizou (próximo de .*?)\.', x) else None)
     df['location'] = df['location'].apply(transform_location)
 
     # Extract intensity from the Description column and fill None values
@@ -75,12 +93,16 @@ if __name__ == "__main__":
             df['intensity'][i] = "Sem info a esta hora"
 
     df_current = df 
+
+    mycursor = mydb.cursor()
+    sql = "INSERT INTO sismos (title, description, publication_date, date_time, scale, location, intensity) VALUES (%s, %s, %s, %s, %s, %s ,%s)"
     # Check if "sismos_ipma.csv" exists and read it
     try:
         existing_df = pd.read_csv("sismos_ipma.csv")
         # Compare the most recent data in df with the most recent data in existing_df
         if df_current['Title'].iloc[0] != existing_df['Title'].iloc[0]:
             temp_df = pd.concat([df_current, existing_df], ignore_index=True)
+
             # Check if the file size exceeds 50MB
             if os.path.getsize("sismos_ipma.csv") > 50 * 1024 * 1024:  # 50MB in bytes
                 # Find the next available sequential file name
@@ -91,14 +113,36 @@ if __name__ == "__main__":
                 # Create a new file for new data
                 temp_df.to_csv("sismos_ipma.csv", index=False)
                 print(f"File size exceeded 50MB, existing data moved to sismos_ipma_{i}.csv, and new data written to sismos_ipma.csv.")
+                
+                # Add informations to MySQL database
+                for i in range(len(df) - 1, -1, -1):
+                    info = (df_current['Title'][i], df_current['Description'][i], df_current['Publication Date'][i], df_current['date_time'][i], float(df_current['scale'][i]), df_current['location'][i], df_current['intensity'][i])
+                    mycursor.execute(sql, info)
+                    mydb.commit()
+                    print(mycursor.rowcount, "record inserted.")
             else:
                 # If the file size is within limit, append the data
                 temp_df.to_csv("sismos_ipma.csv", index=False)
                 print("New data found and appended to sismos_ipma.csv.")
+
+            # Add informations to MySQL database
+            for i in range(len(df) - 1, -1, -1):
+                info = (df_current['Title'][i], df_current['Description'][i], df_current['Publication Date'][i], df_current['date_time'][i], float(df_current['scale'][i]), df_current['location'][i], df_current['intensity'][i])
+                mycursor.execute(sql, info)
+                mydb.commit()
+                print(mycursor.rowcount, "record inserted.")
+
         else:
             print("No new data found.")
     except FileNotFoundError:
         # If the CSV file doesn't exist, create it
         df_current.to_csv("sismos_ipma.csv", index=False)
         print("sismos_ipma.csv file created.")
+
+        # Add informations to MySQL database
+        for i in range(len(df) - 1, -1, -1):
+            info = (df_current['Title'][i], df_current['Description'][i], df_current['Publication Date'][i], df_current['date_time'][i], float(df_current['scale'][i]), df_current['location'][i], df_current['intensity'][i])
+            mycursor.execute(sql, info)
+            mydb.commit()
+            print(mycursor.rowcount, "record inserted.")
 
