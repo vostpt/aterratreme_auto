@@ -52,6 +52,13 @@ def transform_location(loc):
     loc = re.sub(r' a de ', ' ', loc)
     return loc
 
+def add_to_mysql():
+    for i in range(len(df) - 1, -1, -1):
+        info = (df_current['Title'][i], df_current['Description'][i], df_current['Publication Date'][i], df_current['date_time'][i], float(df_current['scale'][i]), df_current['location'][i], df_current['intensity'][i])
+        mycursor.execute(sql, info)
+        mydb.commit()
+        print(mycursor.rowcount, "record inserted.")
+
 if __name__ == "__main__":
 
     # Loading the sensative information
@@ -114,35 +121,22 @@ if __name__ == "__main__":
                 temp_df.to_csv("sismos_ipma.csv", index=False)
                 print(f"File size exceeded 50MB, existing data moved to sismos_ipma_{i}.csv, and new data written to sismos_ipma.csv.")
                 
-                # Add informations to MySQL database
-                for i in range(len(df) - 1, -1, -1):
-                    info = (df_current['Title'][i], df_current['Description'][i], df_current['Publication Date'][i], df_current['date_time'][i], float(df_current['scale'][i]), df_current['location'][i], df_current['intensity'][i])
-                    mycursor.execute(sql, info)
-                    mydb.commit()
-                    print(mycursor.rowcount, "record inserted.")
             else:
                 # If the file size is within limit, append the data
                 temp_df.to_csv("sismos_ipma.csv", index=False)
                 print("New data found and appended to sismos_ipma.csv.")
 
             # Add informations to MySQL database
-            for i in range(len(df) - 1, -1, -1):
-                info = (df_current['Title'][i], df_current['Description'][i], df_current['Publication Date'][i], df_current['date_time'][i], float(df_current['scale'][i]), df_current['location'][i], df_current['intensity'][i])
-                mycursor.execute(sql, info)
-                mydb.commit()
-                print(mycursor.rowcount, "record inserted.")
+            add_to_mysql()
 
         else:
             print("No new data found.")
+            
     except FileNotFoundError:
         # If the CSV file doesn't exist, create it
         df_current.to_csv("sismos_ipma.csv", index=False)
         print("sismos_ipma.csv file created.")
 
         # Add informations to MySQL database
-        for i in range(len(df) - 1, -1, -1):
-            info = (df_current['Title'][i], df_current['Description'][i], df_current['Publication Date'][i], df_current['date_time'][i], float(df_current['scale'][i]), df_current['location'][i], df_current['intensity'][i])
-            mycursor.execute(sql, info)
-            mydb.commit()
-            print(mycursor.rowcount, "record inserted.")
+        add_to_mysql()
 
