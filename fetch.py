@@ -73,7 +73,6 @@ if __name__ == "__main__":
     for i in range(len(df["intensity"])):
         if pd.isna(df['intensity'][i]):
             df['intensity'][i] = "Sem info a esta hora"
-            print("Substituído na posição %d" % i)
 
     df_current = df 
     # Check if "sismos_ipma.csv" exists and read it
