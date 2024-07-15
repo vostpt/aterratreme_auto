@@ -69,8 +69,11 @@ if __name__ == "__main__":
     df['location'] = df['location'].apply(transform_location)
 
     # Extract intensity from the Description column and fill None values
-    df['intensity'] = df['Description'].apply(lambda x: re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x).group(1) if re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x) else None)
-    df['intensity'].fillna("Sem info a esta hora", inplace=True)
+    df['intensity'] = df['Description'].apply(lambda x: re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x).group(1) if re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x) else (re.search(r'intensidade máxima (\w+) \(escala de Mercalli modificada\)', x).group(1) if re.search(r'intensidade máxima (\w+) \(escala de Mercalli modificada\)', x) else None))
+    for i in range(len(df["intensity"])):
+        if pd.isna(df['intensity'][i]):
+            df['intensity'][i] = "Sem info a esta hora"
+            print("Substituído na posição %d" % i)
 
     df_current = df 
     # Check if "sismos_ipma.csv" exists and read it
