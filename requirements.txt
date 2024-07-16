@@ -2,3 +2,6 @@ requests
 pandas
 Pillow
 mysql-connector-python
+dash
+plotly
+geopy
