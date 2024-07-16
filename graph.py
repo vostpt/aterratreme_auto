@@ -90,7 +90,7 @@ def update_data():
 
 # Initialize the Dash application
 app = dash.Dash(__name__)
-
+app.title = title
 # Get data
 df = update_data()
 
