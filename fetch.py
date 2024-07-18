@@ -1,6 +1,5 @@
 # fetch.py
 
-
 from dotenv import load_dotenv
 import requests
 import xml.etree.ElementTree as ET
@@ -30,7 +29,7 @@ def fetch_xml_data(url):
     pd.set_option('display.max_colwidth', None)
     return pd.DataFrame(data, columns=["Title", "Description", "Publication Date"])
 
-def extract_locale(text):
+def extract_location(text):
     # Pattern to identify text within parentheses
     pattern_parentheses = r'\((.*?)\)'
 
@@ -79,12 +78,12 @@ def transform_location(loc):
     return loc
 
 def direction_to_azimuth(direction):
-    direcoes = {
+    directions = {
         'N': 0,
         'N-NE': 22.5,
         'NE': 45,
         'E-NE': 67.5,
-        'L': 90,
+        'E': 90,
         'E-SE': 112.5,
         'SE': 135,
         'S-SE': 157.5,
@@ -92,36 +91,36 @@ def direction_to_azimuth(direction):
         'S-SW': 202.5,
         'SW': 225,
         'W-SW': 247.5,
-        'O': 270,
+        'W': 270,
         'W-NW': 292.5,
         'NW': 315,
         'N-NW': 337.5
     }
-    return direcoes.get(direction)
+    return directions.get(direction)
 
-def calculate_new_coordinate(lat, lon, distance_km, azimute):
-    # Raio da Terra em km
+def calculate_new_coordinate(lat, lon, distance_km, azimuth):
+    # Earth's radius in km
     R = 6371.0
 
-    # Converter latitude e longitude de graus para radianos
+    # Convert latitude and longitude from degrees to radians
     lat_rad = math.radians(lat)
     lon_rad = math.radians(lon)
 
-    # Converter distância para radianos
+    # Convert distance to radians
     distance_rad = distance_km / R
 
-    # Converter azimute de graus para radianos
-    azimute_rad = math.radians(azimute)
+    # Convert azimuth from degrees to radians
+    azimuth_rad = math.radians(azimuth)
 
-    # Calcular a nova latitude
+    # Calculate the new latitude
     new_lat_rad = math.asin(math.sin(lat_rad) * math.cos(distance_rad) +
-                             math.cos(lat_rad) * math.sin(distance_rad) * math.cos(azimute_rad))
+                             math.cos(lat_rad) * math.sin(distance_rad) * math.cos(azimuth_rad))
 
-    # Calcular a nova longitude
-    new_lon_rad = lon_rad + math.atan2(math.sin(azimute_rad) * math.sin(distance_rad) * math.cos(lat_rad),
+    # Calculate the new longitude
+    new_lon_rad = lon_rad + math.atan2(math.sin(azimuth_rad) * math.sin(distance_rad) * math.cos(lat_rad),
                                         math.cos(distance_rad) - math.sin(lat_rad) * math.sin(new_lat_rad))
 
-    # Converter coordenadas de volta para graus
+    # Convert coordinates back to degrees
     new_lat = math.degrees(new_lat_rad)
     new_lon = math.degrees(new_lon_rad)
 
@@ -130,12 +129,12 @@ def calculate_new_coordinate(lat, lon, distance_km, azimute):
 
 if __name__ == "__main__":
 
-    # Loading the sensative information
+    # Load sensitive information
     load_dotenv('.env')
-    Host: str = os.getenv('host')
-    User: str = os.getenv('user')
-    Password: str = os.getenv('password')
-    Database: str = os.getenv('database')
+    host = os.getenv('host')
+    user = os.getenv('user')
+    password = os.getenv('password')
+    database = os.getenv('database')
 
     # Define the XML data source URL
     url = "https://www.ipma.pt/resources.www/rss/comunicados.xml"
@@ -144,8 +143,9 @@ if __name__ == "__main__":
     Base = declarative_base()
 
     class Earthquake(Base):
+        # Name of table
         __tablename__ = "earthquake"
-        # Title,Description,Publication Date,date_time,scale,location,intensity,latitude,longitude
+        # Columns id,Title,Description,Publication Date,date_time,scale,location,intensity,latitude,longitude
         id = Column("id", Integer, primary_key=True, autoincrement="auto")
         title = Column("title", Text)
         description = Column("description", Text)
@@ -177,7 +177,6 @@ if __name__ == "__main__":
 
     # Filter the DataFrame to only include entries with "Sismo" in the "Title" or "Description"
     df = df[df['Title'].str.contains("Sismo") | df['Description'].str.contains("Sismo")]
-    print(df['Description'])
 
     # Extract date_time from the Description column
     df['date_time'] = df['Description'].apply(lambda x: re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x).group(1) if re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x) else None)
@@ -200,8 +199,8 @@ if __name__ == "__main__":
 
     for i in range(len(df)):
         # Adapter to obtain locations and transform them into a Nominatim query
-        place = extract_locale(str(df['location'][i]))
-        # Try to search and get place coordinates from csv
+        place = extract_location(str(df['location'][i]))
+        # Try to search and get place coordinates
         try:
             location = geolocator.geocode(place)
             if location:
@@ -219,27 +218,43 @@ if __name__ == "__main__":
     df['latitude'] = latitude
     df['longitude'] = longitude
     
-    
     for i in range(len(df)):
+        # Checks if the location contains any numbers (necessary to adjust the coordinates)
         if re.search(r'\d', df['location'][i]):
-            distance, coordinate = re.search(r'(\d+)\s*km\s+a\s+([NSEW]+(?:-[NSEW]+)?)', df['location'][i]).groups()
-            azimute = direction_to_azimuth(coordinate)
-            print(azimute)
-            if azimute is not None:
-                    new_latitude, new_longitude = calculate_new_coordinate(df['latitude'][i], df['longitude'][i], float(distance), azimute)
-                    print(f'Nova latitude: {new_latitude}, Nova longitude: {new_longitude}')
+            # Gets the distance and cardinal points separately
+            distance, cardinal = re.search(r'(\d+)\s*km\s+a\s+([NSEW]+(?:-[NSEW]+)?)', df['location'][i]).groups()
+            # Converts the cardinal point to azimuth
+            azimuth = direction_to_azimuth(cardinal)
+            if azimuth is not None:
+                    # Get the new adjusted coordinates
+                    new_latitude, new_longitude = calculate_new_coordinate(df['latitude'][i], df['longitude'][i], float(distance), azimuth)
                     df['latitude'][i] = new_latitude
                     df['longitude'][i] = new_longitude
             else:
-                print("Direção inválida")
-        else:
-                print(f"Coordinates remain the same: {df['latitude'][i]}, {df['longitude'][i]}")
+                print("Invalid direction")
 
-    engine = create_engine("mysql+pymysql://root:@localhost/aterratreme?charset=utf8mb4")
+    # Establishes the connection to the server
+    engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4")
     Base.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)
     session = Session()
+
+    # Get what is in the database in the earthquake table
+    current_db_data = session.query(Earthquake)
+    print("\n")
+
+    # Run so that the oldest earthquake comes first
     for i in range(len(df)-1, -1, -1):
-        sismo = Earthquake(id, df['Title'][i], df['Description'][i], df['Publication Date'][i], df['date_time'][i], float(df['scale'][i]), df['location'][i], df['intensity'][i], df['latitude'][i], df['longitude'][i])
-        session.add(sismo)
-        session.commit()
+        contains = False
+        # Stores the information to be placed in the database in the variable
+        earthquake = Earthquake(None, df['Title'][i], df['Description'][i], df['Publication Date'][i], df['date_time'][i], float(df['scale'][i]), df['location'][i], df['intensity'][i], df['latitude'][i], df['longitude'][i])
+        # Checks if somewhere in the database there is already exactly that earthquake
+        for data in current_db_data:
+            if (data.description == earthquake.description):
+                contains = True              
+        # If it does not exist, place it in the database, otherwise it will inform you that the earthquake has already been registered
+        if not contains:
+            session.add(earthquake)
+            session.commit()
+        else:
+            print("Earthquake already registered ✔")
