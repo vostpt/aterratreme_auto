@@ -156,7 +156,7 @@ def update_dropdown_and_map(n_intervals):
                             range_color=[1, 10],
                             size=df['scale'],
                             size_max=10,
-                            zoom=4.5,
+                            zoom=4.4,
                             center=dict(lat=37.200, lon=-18.000))
     fig.update_layout(mapbox_style="open-street-map")
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
@@ -185,4 +185,4 @@ def update_description_data(selected_date):
         return html.Div("No data available")
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
