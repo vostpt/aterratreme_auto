@@ -185,4 +185,4 @@ def update_description_data(selected_date):
         return html.Div("No data available")
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(host='0.0.0.0', port=8050, debug=False)
