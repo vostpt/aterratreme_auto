@@ -12,6 +12,7 @@ from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 from sqlalchemy import create_engine, Column, String, Integer, CHAR, Float, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy_utils import database_exists, create_database
 
 
 municipios = {
@@ -298,6 +299,8 @@ if __name__ == "__main__":
 
     # Establishes the connection to the server
     engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4")
+    if not database_exists(engine.url):
+        create_database(engine.url)
     Base.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)
     session = Session()

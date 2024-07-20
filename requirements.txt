@@ -6,3 +6,4 @@ dash
 plotly
 geopy
 sqlalchemy
+sqlalchemy_utils
