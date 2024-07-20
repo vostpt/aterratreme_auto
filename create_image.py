@@ -76,7 +76,7 @@ if __name__ == "__main__":
     Base = declarative_base()
 
 
-    latest_data = update_data().iloc[0]
+    latest_data = update_data().iloc[-1]
 
     # Load the image template
     img_path = "assets/SISMO_TEMPLATE_AUTO.png"
@@ -103,3 +103,16 @@ if __name__ == "__main__":
 
     # Save the modified image
     img.save("assets/SISMO_TEMPLATE_MODIFIED.png")
+
+    img_final = Image.new("RGB", (2160, 1080), color="white")
+
+
+    img_path = "assets/SISMO_TEMPLATE_MODIFIED.png"
+    img_info = Image.open(img_path)
+    img_path = "assets/MAPA_SISMO.png"
+    img_map = Image.open(img_path)
+
+    img_final.paste(img_info, (0, 0))
+    img_final.paste(img_map, (1080, 0))
+
+    img_final.save("assets/SISMO_TWEET.png")

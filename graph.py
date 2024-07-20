@@ -8,6 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
+from PIL import Image, ImageFont, ImageDraw
 
 def update_data():
     # Reopen the session to ensure new data is captured
@@ -160,6 +161,35 @@ def update_dropdown_and_map(n_intervals):
                             center=dict(lat=37.200, lon=-18.000))
     fig.update_layout(mapbox_style="open-street-map")
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+
+    image = px.scatter_mapbox(df,
+                            lat='latitude',
+                            lon='longitude',
+                            hover_name='title',
+                            hover_data=['intensity', 'location'],
+                            color=df['scale'],
+                            color_continuous_scale=custom_colors,
+                            range_color=[1, 10],
+                            size=df['scale'] * 20,
+                            zoom=12,
+                            center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]))
+    image.update_layout(mapbox_style="open-street-map")
+    image.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+
+    xy_1 = (455, 500)
+    xy_2 = (535, 580)
+
+    outline_color = 'red'
+    outline_width = 5
+
+    image.write_image("assets/MAPA_SISMO.png", width=1080, height=1080)
+    img = Image.open("assets/MAPA_SISMO.png")
+    draw = ImageDraw.Draw(img)
+    draw.line([xy_1[0], xy_1[1], xy_2[0], xy_1[1]], fill=outline_color, width=outline_width)  # Superior
+    draw.line([xy_2[0], xy_1[1], xy_2[0], xy_2[1]], fill=outline_color, width=outline_width)  # Direito
+    draw.line([xy_2[0], xy_2[1], xy_1[0], xy_2[1]], fill=outline_color, width=outline_width)  # Inferior
+    draw.line([xy_1[0], xy_2[1], xy_1[0], xy_1[1]], fill=outline_color, width=outline_width)  # Esquerdo
+    img.save("assets/MAPA_SISMO.png")
 
     return dropdown_options, initial_value, fig
 

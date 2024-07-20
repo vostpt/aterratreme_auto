@@ -7,3 +7,4 @@ plotly
 geopy
 sqlalchemy
 sqlalchemy_utils
+kaleido
