@@ -118,7 +118,7 @@ app.layout = html.Div(
         # Interval to update the data
         dcc.Interval(
             id='interval-component',
-            interval=60*1000,  # Update every minute
+            interval=60*3000,  # Update every minute
             n_intervals=0
         )
     ]

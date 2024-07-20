@@ -1,17 +1,10 @@
-# fetch.py
+# fetch-test-coordinates.py
 
-from dotenv import load_dotenv
-import requests
-import xml.etree.ElementTree as ET
-import pandas as pd
+
 import re
-import os
 import math
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
-from sqlalchemy import create_engine, Column, String, Integer, CHAR, Float, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 
 
 municipios = {
@@ -34,50 +27,6 @@ def obter_municipios(ilha):
         return municipios[ilha]
     else:
         return None  # Retorna None se a ilha não existir no dicionário
-
-def fetch_xml_data(url):
-    """
-    Fetches XML data from the given URL and returns a DataFrame
-    with columns: "Title", "Description", "Publication Date".
-    """
-    response = requests.get(url)
-    root = ET.fromstring(response.content)
-    data = []
-    for item in root.findall(".//item"):
-        title = item.find("title").text
-        description = item.find("description").text
-        pub_date = item.find("pubDate").text
-        data.append([title, description, pub_date])
-    pd.set_option('display.max_colwidth', None)
-    return pd.DataFrame(data, columns=["Title", "Description", "Publication Date"])
-
-def transform_location(loc):
-    """
-    Transforms the location string by replacing full cardinal directions with their 
-    abbreviations and removing unnecessary words.
-    """
-    if loc is None:
-        return None
-    # Define a dictionary for cardinal direction replacements
-    directions = {
-        "Norte": "N",
-        "Sul": "S",
-        "Este": "E",
-        "Oeste": "W",
-        "Nordeste": "NE",
-        "Noroeste": "NW",
-        "Sudeste": "SE",
-        "Sudoeste": "SW"
-    }
-
-    # Remove "cerca de" if exists
-    loc = loc.replace("cerca de ", "")
-    # Replace cardinal directions
-    for key, value in directions.items():
-        loc = loc.replace(key, value)
-    # Remove "de" before the location name
-    loc = re.sub(r' a de ', ' ', loc)
-    return loc
 
 def direction_to_azimuth(direction):
     directions = {
@@ -128,11 +77,13 @@ def calculate_new_coordinate(lat, lon, distance_km, azimuth):
 
     return new_lat, new_lon
 
-def get_coordinates(df):
+def get_coordinates(locais):
+    global latitudes
+    global longitudes
     latitude = []
     longitude = []
 
-    for place in df['location']:
+    for place in locais:
         # Search for text within parentheses to get the island
         match = re.search(r'\((.*?)\)', place)
         if match:
@@ -223,112 +174,31 @@ def get_coordinates(df):
                 longitude.append(None)
 
     # Add coordinates to data
-    df['latitude'] = latitude
-    df['longitude'] = longitude
+    latitudes = latitude
+    longitudes = longitude
 
 
 
 if __name__ == "__main__":
 
-    # Load sensitive information
-    load_dotenv('.env')
-    host = os.getenv('host')
-    user = os.getenv('user')
-    password = os.getenv('password')
-    database = os.getenv('database')
+    latitudes = []
+    longitudes = []
 
-    # Define the XML data source URL
-    url = "https://www.ipma.pt/resources.www/rss/comunicados.xml"
-    df = fetch_xml_data(url)
-
-    Base = declarative_base()
-
-    class Earthquake(Base):
-        # Name of table
-        __tablename__ = "earthquake"
-        # Columns id,Title,Description,Publication Date,date_time,scale,location,intensity,latitude,longitude
-        id = Column("id", Integer, primary_key=True, autoincrement="auto")
-        title = Column("title", Text)
-        description = Column("description", Text)
-        pub_date = Column("publication_date", String(25))
-        date = Column("date_time", String(50))
-        scale = Column("scale", Float)
-        location = Column("location", String(255))
-        intensity = Column("intensity", String(255))
-        latitude = Column("latitude", Float)
-        longitude = Column('longitude', Float)
-
-        def __init__(self, id, title, description, pub_date, date, scale, location, intensity, latitude, longitude):
-            self.id = id
-            self.title = title
-            self.description = description
-            self.pub_date = pub_date
-            self.date = date
-            self. scale = scale
-            self.location = location
-            self.intensity = intensity
-            self.latitude = latitude
-            self.longitude = longitude
-
-        def __repr__(self):
-            return f"({self.id}) ({self.title}) ({self.description}) ({self.pub_date}) ({self.date}) ({self.scale}) ({self.location}) ({self.intensity}) ({self.latitude}) ({self.longitude})"
+    # Places to test to obtain coordinates
+    locais=[
+        "40 km a Sudoeste de Faro",
+        "4 km a Norte-Nordeste de Sta Bárbara (Terceira)",
+        "12 km a Oeste-Noroeste de Ferreira do Alentejo",
+        "4 km a Nordeste de Sta Bárbara (Terceira)",
+        "Próximo de Raminho (Terceira)"
+    ]
 
     # Define geolocator
     geolocator = Nominatim(user_agent="AterraTreme")
-
-    # Filter the DataFrame to only include entries with "Sismo" in the "Title" or "Description"
-    df = df[(df['Title'].str.contains("Sismo", case=False, na=False) | df['Description'].str.contains("Sismo", case=False, na=False))]
-
-    # Extract date_time from the Description column
-    df['date_time'] = df['Description'].apply(lambda x: re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x).group(1) if re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x) else None)
-
-    # Extract scale from the Description column
-    df['scale'] = df['Description'].apply(lambda x: re.search(r' magnitude (\d+\.\d+) \(Richter\)', x).group(1) if re.search(r' magnitude (\d+\.\d+) \(Richter\)', x) else None)
-
-    # Extract location from the Description column and transform it
-    df['location'] = df['Description'].apply(lambda x: re.search(r'localizou a (cerca de .*?)\.', x).group(1) if re.search(r'localizou a (cerca de .*?)\.', x) else re.search(r'localizou (próximo de .*?)\.', x).group(1) if re.search(r'localizou (próximo de .*?)\.', x) else None)
-    df['location'] = df['location'].apply(transform_location)
-
-    # Extract intensity from the Description column and fill None values
-    df['intensity'] = df['Description'].apply(lambda x: re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x).group(1) if re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x) else (re.search(r'intensidade máxima (\w+) \(escala de Mercalli modificada\)', x).group(1) if re.search(r'intensidade máxima (\w+) \(escala de Mercalli modificada\)', x) else None))
-    df['intensity'] = df['intensity'].fillna("Sem info a esta hora")
-
     
-    get_coordinates(df)
+    # Get coordinates
+    get_coordinates(locais)
 
-    # Establishes the connection to the server
-    engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4")
-    Base.metadata.create_all(bind=engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    # Get what is in the database in the earthquake table
-    current_db_data = session.query(Earthquake)
-    print("\n")
-
-    # Run so that the oldest earthquake comes first
-    for i in range(len(df)-1, -1, -1):
-        contains = False
-        # Stores the information to be placed in the database in the variable
-        earthquake = Earthquake(
-        None, 
-        df.iloc[i]['Title'], 
-        df.iloc[i]['Description'], 
-        df.iloc[i]['Publication Date'], 
-        df.iloc[i]['date_time'], 
-        float(df.iloc[i]['scale']), 
-        df.iloc[i]['location'], 
-        df.iloc[i]['intensity'], 
-        df.iloc[i]['latitude'], 
-        df.iloc[i]['longitude']
-    )
-        # Checks if somewhere in the database there is already exactly that earthquake
-        for data in current_db_data:
-            if (data.description == earthquake.description):
-                contains = True              
-        # If it does not exist, place it in the database, otherwise it will inform you that the earthquake has already been registered
-        if not contains:
-            session.add(earthquake)
-            session.commit()
-        else:
-            print("Earthquake already registered ✔")
+    # If all is correct print all index's
+    for i in range(len(latitudes)):
+        print(f"Indice [{i}] {latitudes[i]} {longitudes[i]}")
