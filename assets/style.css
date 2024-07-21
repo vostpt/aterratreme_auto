@@ -1,0 +1,191 @@
+body {
+    margin: 0px;
+    padding: 0px;
+    overflow: hidden;
+}
+
+.div-principal {
+    background-color: white;
+    font-family: sans-serif;
+    display: flex;
+    width: 99vw;
+}
+
+.info-div {
+    background-color: black;
+    width: 28vw;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.info-div > h1 {
+    color: white;
+}
+
+.dropdown {
+    width: 100%;
+}
+
+.description {
+    color: white;
+}
+
+.div-mapa {
+    height: 100vh;
+}
+
+.mapa {
+    width: 67.5vw;
+    height: 100vh;
+}
+
+.more-info {
+    color: white;
+}
+.mobile-info {
+    visibility: hidden;
+    display: none;
+}
+
+.mobile-info-div {
+    background-color: transparent;
+    position: unset;
+}
+
+.more-info-div {
+    position: fixed;
+    z-index: 4;
+    width: 25vw;
+}
+
+/* Classes para esconder e mostrar */
+.hidden {
+    display: none;
+    visibility: hidden;
+    position: unset;
+    top: auto;
+    z-index: -10;
+}
+
+.visible {
+    display: block;
+    visibility: visible;
+}
+
+@media screen and (max-width: 600px) {
+    body {
+        margin: 0px;
+        padding: 0px;
+        overflow: hidden;
+    }
+
+    .div-principal {
+        display: grid;
+        overflow: hidden;
+    }
+    
+    .info-div {
+        background-color: rgb(255, 94, 0);
+        width: 99vw;
+        height: 8vh;
+        color: black;
+        text-align: center;
+    }
+    .info-div > h1 {
+        padding-top: -1vh;
+        color: rgb(0, 0, 0);
+        font-size: 7vw;
+    }
+
+    .div-mapa {
+        height: 99vh;
+        width: 121vw;
+    }
+    
+    .mapa {
+        width: 121vw;
+        height: 100vh;
+    }
+    .mobile-info {
+        position: absolute;
+        display: block;
+        visibility: visible;
+    }
+
+    .dropdown {
+        z-index: 6;
+        position: absolute;
+        top: 2vh;
+        left: 10vw;
+        width: 80vw;
+    }
+    .description {
+        z-index: 5;
+        position: absolute;
+        top: 10vh;
+        left: 5px;
+        color: black;
+        text-align: left;
+    }
+    .description > table > tr > th {
+        font-size: 3vw;
+    }
+    .description > table > tr > td {
+        font-size: 3vw;
+    }
+    .more-info {
+        z-index: 5;
+        position: absolute;
+        top: 18vh;
+        width: 100vw;
+        text-align: center;
+        color: black;
+        
+    }
+    .more-info > h4 > a {
+        font-style: normal;
+        text-decoration: solid;
+    }
+
+    .mobile-triguer-info {
+        z-index: 5;
+        width: 100vw;
+        height: 5vh;
+        position: absolute;
+        top: 86vh;
+        border-radius: 15px;
+        color: white;
+        background-color: black;
+
+    }
+
+    .mobile-triguer-info > p {
+        margin-top: 1vh;
+        font-size: 4vw;
+    }
+
+    .more-info-div {
+        position: absolute;
+        top: 60vh;
+        z-index: 4;
+        background-color: rgba(240, 255, 255, 0.705);
+        border-radius: 20px;
+        height: 25vh;
+        width: 100vw;
+        transition: all 0.3s ease;
+    }
+    
+    /* Classes para esconder e mostrar */
+    .hidden {
+        display: none;
+        visibility: hidden;
+        position: unset;
+        top: auto;
+        z-index: -10;
+    }
+    
+    .visible {
+        display: block;
+        visibility: visible;
+    }
+}

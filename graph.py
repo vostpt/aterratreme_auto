@@ -1,3 +1,5 @@
+# graph.py
+
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
@@ -74,46 +76,67 @@ database = os.getenv('database')
 engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4")
 Base = declarative_base()
 
+# Add styles to the App
+app.css.append_css({
+    'external_url': './assets/style.css'
+})
+
 # Layout of the Dash app
 app.layout = html.Div(
-    style={"background-color":"white", "font-family" : "sans-serif", "display" : "flex", "width":"97vw", "overflow": "hidden"},
+    className='div-principal',
     children=[
         html.Div(
-            style={"background-color":"black", "width":"28vw", "padding-left":"5px", "padding-right":"5px"},
+            id='info-div',
+            className='info-div',
             children=[
-                html.Div(
-                    style={"color" : "white"},
-                    children=[
-                        html.H1(title)
-                    ]
-                ),
+                html.H1(title),
                 # Dropdown for title selection
-                dcc.Dropdown(
-                    id='title-dropdown',
-                    options=[],
-                    value=None,  # Initial value
-                    style={"width": "100%"}
-                ),
-                html.Br(),
-                # Div to display description and publication date
-                html.Div(id='description-date', style={"color" : "white"}),
-                html.Br(),
-                dcc.Markdown(
-                    style={"color" : "white"},
+                html.Div(
+                    id='more-info-div',
                     children=[
-                        '''
-                        #### Dados extraídos do [IPMA](https://www.ipma.pt)
-                        '''
+                        dcc.Dropdown(
+                            id='title-dropdown',
+                            options=[],
+                            value=None,  # Initial value
+                            className='dropdown'
+                        ),
+                        html.Br(),
+                        # Div to display description and publication date
+                        html.Div(id='description-date', className='description'),
+                        html.Br(),
+                        dcc.Markdown(
+                            className='more-info',
+                            children=[
+                                '''
+                                #### Dados extraídos do [IPMA](https://www.ipma.pt)
+                                '''
+                            ]
+                        ),
                     ]
-                )
+                ),
+                dcc.Store(id='hide-store', data={'hide': False}),  # Store the hide state
             ]
         ),
         html.Div(
             id='map-container',
-            style={"height":"100vh"},
+            className='div-mapa',
             children=[
                 # Map to show the location of earthquakes
-                dcc.Graph(id='map', style={"height":"100vh", "width":"65.5vw"}),
+                dcc.Graph(id='map', className='mapa'),
+            ]
+        ),
+        html.Div(
+            className='mobile-info',
+            children=[
+                html.Button(
+                    id='triguer',
+                    className='mobile-triguer-info',
+                    children=[
+                        html.P(
+                            "Informação do Sismo"
+                        )
+                    ]
+                )
             ]
         ),
         # Interval to update the data
@@ -158,7 +181,7 @@ def update_dropdown_and_map(n_intervals):
                             size=df['scale'],
                             size_max=10,
                             zoom=4.4,
-                            center=dict(lat=37.200, lon=-18.000))
+                            center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]))
     fig.update_layout(mapbox_style="open-street-map")
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
 
@@ -213,6 +236,27 @@ def update_description_data(selected_date):
         return description
     else:
         return html.Div("No data available")
+
+@app.callback(
+    Output('more-info-div', 'className'),
+    Input('hide-store', 'data')
+)
+def update_styles(data):
+    hide = data['hide']
+    if hide:
+        return 'more-info-div hidden'
+    else:
+        return 'more-info-div visible'
+
+@app.callback(
+    Output('hide-store', 'data'),
+    Input('triguer', 'n_clicks'),
+    prevent_initial_call=True
+)
+def toggle_hide(n_clicks):
+    if n_clicks is None:
+        raise dash.exceptions.PreventUpdate
+    return {'hide': n_clicks % 2 == 1}
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=8050, debug=False)
