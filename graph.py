@@ -81,6 +81,7 @@ app.css.append_css({
     'external_url': './assets/style.css'
 })
 
+
 # Layout of the Dash app
 app.layout = html.Div(
     className='div-principal',
@@ -112,6 +113,20 @@ app.layout = html.Div(
                                 '''
                             ]
                         ),
+                        html.A(
+                            href='https://www.ipma.pt/',
+                            id='img-ipma',
+                            className='img-ipma',
+                            children=[
+                                html.P(
+                                    'Dados extraídos do'
+                                ),
+                                html.Img(
+                                    alt='ipma-logo',
+                                    src='https://www.ipma.pt/opencms/system/modules/ipma.website/resources/images/logo-ipma-17.svg',
+                                ),
+                            ]
+                        )
                     ]
                 ),
                 dcc.Store(id='hide-store', data={'hide': False}),  # Store the hide state
@@ -148,6 +163,7 @@ app.layout = html.Div(
     ]
 )
 
+
 # Callback to update the dropdown options and the map
 @app.callback(
     [Output('title-dropdown', 'options'),
@@ -159,7 +175,7 @@ def update_dropdown_and_map(n_intervals):
     df = update_data()
     dropdown_options = [{'label': date, 'value': date} for date in df['date']]
     if not df.empty:
-        initial_value = df['date'].iloc[0]
+        initial_value = df['date'].iloc[-1]
     else:
         initial_value = None
 
@@ -260,3 +276,4 @@ def toggle_hide(n_clicks):
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=8050, debug=False)
+    

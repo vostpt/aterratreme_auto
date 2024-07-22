@@ -12,14 +12,14 @@ body {
 }
 
 .info-div {
-    background-color: black;
+    background-color: rgb(255, 94, 0);
     width: 28vw;
     padding-left: 5px;
     padding-right: 5px;
 }
 
 .info-div > h1 {
-    color: white;
+    color: black;
 }
 
 .dropdown {
@@ -27,7 +27,31 @@ body {
 }
 
 .description {
-    color: white;
+    color: black;
+    background-color: azure;
+}
+
+.description > table, th, td {
+    border: 1px solid black;
+}
+
+.description > table > tr > th, td {
+    padding-left: 1vw;
+}
+
+.img-ipma {
+    visibility: visible;
+    text-decoration: none;
+}
+
+.img-ipma > p {
+    margin-top: 30vh;
+    margin-left: 1vw;
+    text-decoration: none;
+    font-style: normal;
+    color: black;
+    font-size: 2vw;
+    margin-bottom: 0;
 }
 
 .div-mapa {
@@ -40,7 +64,8 @@ body {
 }
 
 .more-info {
-    color: white;
+    color: black;
+    visibility: hidden;
 }
 .mobile-info {
     visibility: hidden;
@@ -126,13 +151,20 @@ body {
         left: 5px;
         color: black;
         text-align: left;
+        background-color: transparent;
     }
-    .description > table > tr > th {
+    .description > table, th, td {
+        border: 0px;
+    }
+    
+    .description > table > tr > th, td {
         font-size: 3vw;
+        padding-left: 0vw;
     }
-    .description > table > tr > td {
-        font-size: 3vw;
+    .img-ipma {
+        visibility: hidden;
     }
+
     .more-info {
         z-index: 5;
         position: absolute;
@@ -162,6 +194,10 @@ body {
     .mobile-triguer-info > p {
         margin-top: 1vh;
         font-size: 4vw;
+    }
+
+    .more-info {
+        visibility: visible;
     }
 
     .more-info-div {
