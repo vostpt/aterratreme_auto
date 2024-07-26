@@ -194,8 +194,7 @@ def update_dropdown_and_map(n_intervals):
                             color=df['scale'],
                             color_continuous_scale=custom_colors,
                             range_color=[1, 10],
-                            size=df['scale'],
-                            size_max=10,
+                            size=(df['scale'] * df['scale']) * 1.5,
                             zoom=4.4,
                             center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]))
     fig.update_layout(mapbox_style="open-street-map")
@@ -209,7 +208,7 @@ def update_dropdown_and_map(n_intervals):
                             color=df['scale'],
                             color_continuous_scale=custom_colors,
                             range_color=[1, 10],
-                            size=df['scale'] * 20,
+                            size=(df['scale'] * df['scale']) * 1.5,
                             zoom=12,
                             center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]))
     image.update_layout(mapbox_style="open-street-map")
