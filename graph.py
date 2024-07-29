@@ -5,12 +5,34 @@ from dash import dcc, html
 from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 from sqlalchemy import create_engine, Column, String, Integer, Float, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
 from PIL import Image, ImageFont, ImageDraw
+
+def roman_to_int(roman_str):
+    roman_numerals = {
+        'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5,
+        'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10
+    }
+    value = roman_numerals.get(roman_str)
+    return value
+
+# Function to convert intensity ranges into an average value
+def parse_intensity(intensity_all):
+    result = []
+    # Detect if it's a range or a single value
+    for intensity in intensity_all:
+        if '/' in intensity:
+            parts = intensity.split('/')
+            values = [roman_to_int(part) for part in parts]
+            result.append(int(sum(values) / 2))  # Returns the average of the values
+        else:
+            result.append(int(roman_to_int(intensity)))  # Returns the integer value
+    return result
 
 def update_data():
     # Reopen the session to ensure new data is captured
@@ -58,7 +80,7 @@ class Earthquake(Base):
     def __repr__(self):
         return f"({self.id}) ({self.title}) ({self.description}) ({self.pub_date}) ({self.date}) ({self.scale}) ({self.location}) ({self.intensity}) ({self.latitude}) ({self.longitude})"
 
-# Title of APP
+# Title of the APP
 title = "AterraTreme Dashboard"
 
 # Initialize the Dash application
@@ -72,7 +94,7 @@ user = os.getenv('user')
 password = os.getenv('password')
 database = os.getenv('database')
 
-# Establishes the connection to the server
+# Establish the connection to the server
 engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4")
 Base = declarative_base()
 
@@ -80,7 +102,6 @@ Base = declarative_base()
 app.css.append_css({
     'external_url': './assets/style.css'
 })
-
 
 # Layout of the Dash app
 app.layout = html.Div(
@@ -109,7 +130,7 @@ app.layout = html.Div(
                             className='more-info',
                             children=[
                                 '''
-                                #### Dados extraídos do [IPMA](https://www.ipma.pt)
+                                #### Data extracted from [IPMA](https://www.ipma.pt)
                                 '''
                             ]
                         ),
@@ -119,7 +140,7 @@ app.layout = html.Div(
                             className='img-ipma',
                             children=[
                                 html.P(
-                                    'Dados extraídos do'
+                                    'Data extracted from'
                                 ),
                                 html.Img(
                                     alt='ipma-logo',
@@ -148,7 +169,7 @@ app.layout = html.Div(
                     className='mobile-triguer-info',
                     children=[
                         html.P(
-                            "Informação do Sismo"
+                            "Earthquake Information"
                         )
                     ]
                 )
@@ -157,12 +178,11 @@ app.layout = html.Div(
         # Interval to update the data
         dcc.Interval(
             id='interval-component',
-            interval=60*3000,  # Update every minute
+            interval=60*3000,  # Update every 5 minutes
             n_intervals=0
         )
     ]
 )
-
 
 # Callback to update the dropdown options and the map
 @app.callback(
@@ -186,26 +206,54 @@ def update_dropdown_and_map(n_intervals):
         "#ff4000",  # Orange
         "#ff0000",  # Red
     ]
-    fig = px.scatter_mapbox(df,
-                            lat='latitude',
-                            lon='longitude',
-                            hover_name='title',
-                            hover_data=['intensity', 'location'],
-                            color=df['scale'],
-                            color_continuous_scale=custom_colors,
-                            range_color=[1, 10],
-                            size=(df['scale'] * df['scale']) * 1.5,
-                            zoom=4.4,
-                            center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]))
-    fig.update_layout(mapbox_style="open-street-map")
-    fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+
+    # Initialize the figure
+    fig = go.Figure()
+
+    # Add trace to the map
+    fig.add_trace(go.Scattermapbox(
+        lat=df['latitude'],
+        lon=df['longitude'],
+        mode='markers',
+        marker=dict(
+            size=(df['scale'] ** 2.5) + 5,  # Adjust marker size
+            color=parse_intensity(df['intensity']),  # Colors based on intensity
+            colorscale=custom_colors,  # Custom color scale
+            colorbar=dict(
+                tickvals=[1, 10],  # Color range values
+                ticktext=['1', '10'],  # Color range labels
+                title='Intensity'  # Color bar title
+            ),
+            cmin=1,  # Minimum value for color scale
+            cmax=10,  # Maximum value for color scale
+            showscale=True  # Show color bar
+        ),
+        customdata=df[['title', 'location', 'intensity', 'scale']],  # Custom data for hover
+        hovertemplate=(
+            "<b>Title:</b> %{customdata[0]}<br>"
+            "<b>Location:</b> %{customdata[1]}<br>"
+            "<b>Intensity:</b> %{customdata[2]}<br>"
+            "<b>Scale:</b> %{customdata[3]}<br>"
+            "<extra></extra>"  # Remove additional info
+        )
+    ))
+
+    # Update map layout
+    fig.update_layout(
+        mapbox=dict(
+            style="open-street-map",  # Map style
+            center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]),  # Map center
+            zoom=4.4  # Zoom level
+        ),
+        margin=dict(r=0, t=0, l=0, b=0)  # Graph margins
+    )
 
     image = px.scatter_mapbox(df,
                             lat='latitude',
                             lon='longitude',
                             hover_name='title',
                             hover_data=['intensity', 'location'],
-                            color=df['scale'],
+                            color=parse_intensity(df['intensity']),
                             color_continuous_scale=custom_colors,
                             range_color=[1, 10],
                             size=(df['scale'] * df['scale']) * 1.5,
@@ -214,6 +262,7 @@ def update_dropdown_and_map(n_intervals):
     image.update_layout(mapbox_style="open-street-map")
     image.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
 
+    # Draw a border around the map
     xy_1 = (455, 500)
     xy_2 = (535, 580)
 
@@ -223,10 +272,10 @@ def update_dropdown_and_map(n_intervals):
     image.write_image("assets/MAPA_SISMO.png", width=1080, height=1080)
     img = Image.open("assets/MAPA_SISMO.png")
     draw = ImageDraw.Draw(img)
-    draw.line([xy_1[0], xy_1[1], xy_2[0], xy_1[1]], fill=outline_color, width=outline_width)  # Superior
-    draw.line([xy_2[0], xy_1[1], xy_2[0], xy_2[1]], fill=outline_color, width=outline_width)  # Direito
-    draw.line([xy_2[0], xy_2[1], xy_1[0], xy_2[1]], fill=outline_color, width=outline_width)  # Inferior
-    draw.line([xy_1[0], xy_2[1], xy_1[0], xy_1[1]], fill=outline_color, width=outline_width)  # Esquerdo
+    draw.line([xy_1[0], xy_1[1], xy_2[0], xy_1[1]], fill=outline_color, width=outline_width)  # Top
+    draw.line([xy_2[0], xy_1[1], xy_2[0], xy_2[1]], fill=outline_color, width=outline_width)  # Right
+    draw.line([xy_2[0], xy_2[1], xy_1[0], xy_2[1]], fill=outline_color, width=outline_width)  # Bottom
+    draw.line([xy_1[0], xy_2[1], xy_1[0], xy_1[1]], fill=outline_color, width=outline_width)  # Left
     img.save("assets/MAPA_SISMO.png")
 
     return dropdown_options, initial_value, fig
@@ -243,9 +292,9 @@ def update_description_data(selected_date):
         description = html.Table(
             style={"text-align": "left", "font-size":"15px"},
             children=[
-                html.Tr([html.Th("Hora: "), html.Td(row['date'])]),
-                html.Tr([html.Th("Epicentro: "), html.Td(row['location'])]),
-                html.Tr([html.Th("Intensidade (MMI): "), html.Td(row['intensity'])]),
+                html.Tr([html.Th("Time: "), html.Td(row['date'])]),
+                html.Tr([html.Th("Epicenter: "), html.Td(row['location'])]),
+                html.Tr([html.Th("Intensity (MMI): "), html.Td(row['intensity'])]),
                 html.Tr([html.Th("Magnitude: "), html.Td(row['scale'])])
             ])
         return description
@@ -275,4 +324,3 @@ def toggle_hide(n_clicks):
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=8050, debug=False)
-    
