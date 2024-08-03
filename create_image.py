@@ -2,6 +2,8 @@
 
 from PIL import Image, ImageFont, ImageDraw
 import pandas as pd
+import plotly.graph_objects as go
+import plotly.io as pio
 from sqlalchemy import create_engine, Column, String, Integer, Float, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -33,6 +35,100 @@ def update_data():
     session.close()
     return db_df
 
+
+def roman_to_int(roman_str):
+    roman_numerals = {
+        'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5,
+        'VI': 6, 'VII': 7, 'VIII': 8, 'IX': 9, 'X': 10
+    }
+    value = roman_numerals.get(roman_str)
+    return value
+
+# Function to convert intensity ranges into an average value
+def parse_intensity(intensity_all):
+    result = []
+    # Detect if it's a range or a single value
+    for intensity in intensity_all:
+        if '/' in intensity:
+            parts = intensity.split('/')
+            values = [roman_to_int(part) for part in parts]
+            result.append(int(sum(values) / 2))  # Returns the average of the values
+        else:
+            result.append(int(roman_to_int(intensity)))  # Returns the integer value
+    return result
+
+def create_map_image(df):
+    """
+    Create a map image with earthquake data and save it as an image file.
+    """
+    try:
+        # Set Mapbox token
+        pio.kaleido.scope.mapbox_access_token = token_mapbox
+
+        # Define custom color scale
+        custom_colors = [
+            "#006400",  # Green
+            "#00FF00",  # Lime
+            "#ffbf00",  # Yellow
+            "#ff4000",  # Orange
+            "#ff0000",  # Red
+        ]
+
+        # Create Plotly map figure
+        image = go.Figure()
+        image.add_trace(go.Scattermapbox(
+            lat=df['latitude'],
+            lon=df['longitude'],
+            mode='markers',
+            marker=dict(
+                size=(df['scale'] ** 2.5) + 5,  # Marker size
+                color=parse_intensity(df['intensity']),  # Color based on intensity
+                colorscale=custom_colors,  # Custom colorscale
+                colorbar=dict(
+                    tickvals=[1, 10],  # Color range values
+                    ticktext=['1', '10'],  # Color range labels
+                    title='Intensity'  # Color bar title
+                ),
+                cmin=1,  # Minimum value for color scale
+                cmax=10,  # Maximum value for color scale
+                showscale=True  # Show color scale
+            )
+        ))
+
+        # Update layout for the map
+        image.update_layout(
+            mapbox=dict(
+                style="mapbox://styles/mapbox/outdoors-v12",  # Check if this is valid
+                center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]),  # Center the map
+                zoom=12  # Zoom level
+            ),
+            margin=dict(r=0, t=0, l=0, b=0)  # Remove margins
+        )
+
+        # Save the image
+        image.write_image("assets/MAPA_SISMO.png", width=1080, height=1080)
+
+        # Open the saved image to add a border
+        img = Image.open("assets/MAPA_SISMO.png")
+        draw = ImageDraw.Draw(img)
+
+        # Define border parameters
+        xy_1 = (455, 500)  # Top-left corner
+        xy_2 = (535, 580)  # Bottom-right corner
+        outline_color = 'red'
+        outline_width = 5
+
+        # Draw the border
+        draw.line([xy_1[0], xy_1[1], xy_2[0], xy_1[1]], fill=outline_color, width=outline_width)  # Top
+        draw.line([xy_2[0], xy_1[1], xy_2[0], xy_2[1]], fill=outline_color, width=outline_width)  # Right
+        draw.line([xy_2[0], xy_2[1], xy_1[0], xy_2[1]], fill=outline_color, width=outline_width)  # Bottom
+        draw.line([xy_1[0], xy_2[1], xy_1[0], xy_1[1]], fill=outline_color, width=outline_width)  # Left
+
+        # Save the final image
+        img.save("assets/MAPA_SISMO.png")
+
+    except Exception as e:
+        print(f"An error occurred while creating the map image: {e}")
 if __name__ == "__main__":
     # Load sensitive information
     load_dotenv('.env')
@@ -40,6 +136,7 @@ if __name__ == "__main__":
     user = os.getenv('user')
     password = os.getenv('password')
     database = os.getenv('database')
+    token_mapbox = os.getenv('token_mapbox')
 
     Base = declarative_base()
     class Earthquake(Base):
@@ -75,7 +172,10 @@ if __name__ == "__main__":
     engine = create_engine(f"mysql+pymysql://{user}:{password}@{host}/{database}?charset=utf8mb4")
     Base = declarative_base()
 
+    # Create map image with earthquake
+    create_map_image(update_data())
 
+    # Get the latest data of database
     latest_data = update_data().iloc[-1]
 
     # Load the image template
@@ -101,18 +201,16 @@ if __name__ == "__main__":
     intensity_text = latest_data['intensity']
     overlay_text(img, intensity_text, (520, 832), font, "#703D25")
 
-    # Save the modified image
-    img.save("assets/SISMO_TEMPLATE_MODIFIED.png")
-
+    # Create new white image
     img_final = Image.new("RGB", (2160, 1080), color="white")
 
-
-    img_path = "assets/SISMO_TEMPLATE_MODIFIED.png"
-    img_info = Image.open(img_path)
+    # Get the map image with earthquake
     img_path = "assets/MAPA_SISMO.png"
     img_map = Image.open(img_path)
 
-    img_final.paste(img_info, (0, 0))
+    # Place the two images on the white image
+    img_final.paste(img, (0, 0))
     img_final.paste(img_map, (1080, 0))
 
+    # Save the modified final image
     img_final.save("assets/SISMO_TWEET.png")

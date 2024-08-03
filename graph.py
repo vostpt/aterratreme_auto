@@ -209,6 +209,7 @@ def update_dropdown_and_map(n_intervals):
 
     # Initialize the figure
     fig = go.Figure()
+    image = go.Figure()
 
     # Add trace to the map
     fig.add_trace(go.Scattermapbox(
@@ -247,37 +248,6 @@ def update_dropdown_and_map(n_intervals):
         ),
         margin=dict(r=0, t=0, l=0, b=0)  # Graph margins
     )
-
-    image = px.scatter_mapbox(df,
-                            lat='latitude',
-                            lon='longitude',
-                            hover_name='title',
-                            hover_data=['intensity', 'location'],
-                            color=parse_intensity(df['intensity']),
-                            color_continuous_scale=custom_colors,
-                            range_color=[1, 10],
-                            size=(df['scale'] * df['scale']) * 1.5,
-                            zoom=12,
-                            center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]))
-    image.update_layout(mapbox_style="open-street-map")
-    image.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-
-    # Draw a border around the map
-    xy_1 = (455, 500)
-    xy_2 = (535, 580)
-
-    outline_color = 'red'
-    outline_width = 5
-
-    image.write_image("assets/MAPA_SISMO.png", width=1080, height=1080)
-    img = Image.open("assets/MAPA_SISMO.png")
-    draw = ImageDraw.Draw(img)
-    draw.line([xy_1[0], xy_1[1], xy_2[0], xy_1[1]], fill=outline_color, width=outline_width)  # Top
-    draw.line([xy_2[0], xy_1[1], xy_2[0], xy_2[1]], fill=outline_color, width=outline_width)  # Right
-    draw.line([xy_2[0], xy_2[1], xy_1[0], xy_2[1]], fill=outline_color, width=outline_width)  # Bottom
-    draw.line([xy_1[0], xy_2[1], xy_1[0], xy_1[1]], fill=outline_color, width=outline_width)  # Left
-    img.save("assets/MAPA_SISMO.png")
-
     return dropdown_options, initial_value, fig
 
 # Callback to update description and publication date
