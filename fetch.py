@@ -145,7 +145,7 @@ def get_coordinates(df):
                     # Remove parentheses content for search
                     location_text = re.sub(r'\(.*?\)', '', place)
                     # Extract the actual location name
-                    pattern = r'(?:de|da)\s(.*)'
+                    pattern = r'(?:(?:de|da|do|da)\s)(.*)'
                     match2 = re.search(pattern, location_text, re.IGNORECASE)
                     if match2:
                         location_name = match2.group(1).strip()
@@ -186,7 +186,7 @@ def get_coordinates(df):
                 longitude.append(None)
         else:
             # Handle continental cases directly
-            pattern = r'(?:de|da)\s(.*)'
+            pattern = r'(?:(?:de|da|do|da)\s)(.*)'
             match2 = re.search(pattern, place, re.IGNORECASE)
             if match2:
                 location_name = match2.group(1).strip()

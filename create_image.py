@@ -100,7 +100,7 @@ def create_map_image(df):
             mapbox=dict(
                 style="mapbox://styles/mapbox/outdoors-v12",  # Check if this is valid
                 center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]),  # Center the map
-                zoom=12  # Zoom level
+                zoom=10  # Zoom level
             ),
             margin=dict(r=0, t=0, l=0, b=0)  # Remove margins
         )
