@@ -40,7 +40,7 @@ http://127.0.0.1:8050/
 
 ## Result
 
-### Dasboard
+### Dashboard
 ![AterraTreme Dashboard](/images/dashboard.png)
 
 ### Final Image Example
