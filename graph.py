@@ -4,14 +4,12 @@ import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 from sqlalchemy import create_engine, Column, String, Integer, Float, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 import os
-from PIL import Image, ImageFont, ImageDraw
 
 def roman_to_int(roman_str):
     roman_numerals = {
