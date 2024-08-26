@@ -102,7 +102,7 @@ def create_map_image(df):
             mapbox=dict(
                 style="mapbox://styles/mapbox/outdoors-v12",  # Check if this is valid
                 center=dict(lat=df['latitude'].iloc[-1], lon=df['longitude'].iloc[-1]),  # Center the map
-                zoom=10  # Zoom level
+                zoom=7  # Zoom level
             ),
             margin=dict(r=0, t=0, l=0, b=0)  # Remove margins
         )
@@ -201,7 +201,7 @@ if __name__ == "__main__":
             overlay_text(img, scale_text, (455, 629), font, "#703D25")
 
             # Overlay the date_time information on the image
-            date_time_text = latest_data['pub_date']
+            date_time_text = latest_data['date']
             overlay_text(img, date_time_text, (242, 772), font, "#00A396")
 
             # Overlay the intensity information on the image
