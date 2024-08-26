@@ -28,6 +28,8 @@ def parse_intensity(intensity_all):
             parts = intensity.split('/')
             values = [roman_to_int(part) for part in parts]
             result.append(int(sum(values) / 2))  # Returns the average of the values
+        elif 'Sem info a esta hora' in intensity:
+            result.append(1) # Default value
         else:
             result.append(int(roman_to_int(intensity)))  # Returns the integer value
     return result
