@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     # Extract intensity from the Description column and fill None values
     df['intensity'] = df['Description'].apply(lambda x: re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x).group(1) if re.search(r'(\w+/\w+) \(escala de Mercalli modificada\)', x) else None)
-    df['intensity'].fillna("Sem info a esta hora", inplace=True)
+    df['intensity'] = df['intensity'].fillna("Sem info a esta hora")
 
     df_current = df 
     # Check if "sismos_ipma.csv" exists and read it

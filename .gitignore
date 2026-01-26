@@ -7,9 +7,13 @@ assets/._SISMO_TEMPLATE_MODIFIED.png
 .github/workflows/._main.yaml
 ._create_image.py
 ._fetch.py
-<<<<<<< Updated upstream
-=======
 ._sismos_ipma.csv
 ._testdata.csv
->>>>>>> Stashed changes
 .DS_Store
+
+.venv/
+venv/
+env/
+ENV/
+venv.bak/
+env.bak/
