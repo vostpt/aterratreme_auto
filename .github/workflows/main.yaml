@@ -2,7 +2,7 @@ name: Fetch Data and Create Image
 
 on:
   schedule:
-    - cron: '*/1200 * * * *'  # Run this action every 5 minutes
+    - cron: '0/5 * * * *'  # Run this action every 5 minutes
   workflow_dispatch:
 
 jobs:
@@ -32,8 +32,8 @@ jobs:
 
     - name: Create Image if new data
       run: |
-        NEW_DATA=$(tail -1 sismos_ipma.csv | cut -d, -f1)
-        if [[ "$NEW_DATA" != "$(cat latest_data.txt)" ]]; then
+        NEW_DATA=$(python -c "import pandas as pd; df = pd.read_csv('sismos_ipma.csv'); print(df['Title'].iloc[0] if not df.empty else '')")
+        if [[ -n "$NEW_DATA" && "$NEW_DATA" != "$(cat latest_data.txt 2>/dev/null || true)" ]]; then
           python create_image.py
           echo "$NEW_DATA" > latest_data.txt
         fi
@@ -41,6 +41,6 @@ jobs:
       run: |
         git config --global user.email "hello@vost.pt"
         git config --global user.name "vospt"
-        git add sismos_ipma.csv latest_data.txt
+        git add sismos_ipma.csv latest_data.txt assets/SISMO_TEMPLATE_MODIFIED.png
         git commit -m "Update data" || echo "No changes to commit"
         git push origin

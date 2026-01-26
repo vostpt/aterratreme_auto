@@ -7,18 +7,26 @@ import pandas as pd
 import re
 import os
 
+
+def _get_child_text(parent, tag):
+    child = parent.find(tag)
+    if child is None:
+        return None
+    return child.text
+
 def fetch_xml_data(url):
     """
     Fetches XML data from the given URL and returns a DataFrame
     with columns: "Title", "Description", "Publication Date".
     """
-    response = requests.get(url)
+    response = requests.get(url, timeout=20)
+    response.raise_for_status()
     root = ET.fromstring(response.content)
     data = []
     for item in root.findall(".//item"):
-        title = item.find("title").text
-        description = item.find("description").text
-        pub_date = item.find("pubDate").text
+        title = _get_child_text(item, "title")
+        description = _get_child_text(item, "description")
+        pub_date = _get_child_text(item, "pubDate")
         data.append([title, description, pub_date])
     return pd.DataFrame(data, columns=["Title", "Description", "Publication Date"])
 
@@ -53,10 +61,21 @@ def transform_location(loc):
 if __name__ == "__main__":
     # Define the XML data source URL
     url = "https://www.ipma.pt/resources.www/rss/comunicados.xml"
-    df = fetch_xml_data(url)
+    try:
+        df = fetch_xml_data(url)
+    except (requests.RequestException, ET.ParseError) as e:
+        print(f"Failed to fetch/parse XML data: {e}")
+        raise SystemExit(0)
 
     # Filter the DataFrame to only include entries with "Sismo" in the "Title" or "Description"
-    df = df[df['Title'].str.contains("Sismo") | df['Description'].str.contains("Sismo")]
+    df = df[
+        df["Title"].fillna("").str.contains("Sismo")
+        | df["Description"].fillna("").str.contains("Sismo")
+    ]
+
+    if df.empty:
+        print("No 'Sismo' entries found.")
+        raise SystemExit(0)
 
     # Extract date_time from the Description column
     df['date_time'] = df['Description'].apply(lambda x: re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x).group(1) if re.search(r'(\d{2}-\d{2}-\d{4} pelas \d{2}:\d{2} \(hora local\))', x) else None)
@@ -77,21 +96,24 @@ if __name__ == "__main__":
     try:
         existing_df = pd.read_csv("sismos_ipma.csv")
         # Compare the most recent data in df with the most recent data in existing_df
-        if df_current['Title'].iloc[0] != existing_df['Title'].iloc[0]:
+        existing_title = existing_df["Title"].iloc[0] if not existing_df.empty else None
+        current_title = df_current["Title"].iloc[0]
+        if current_title != existing_title:
             temp_df = pd.concat([df_current, existing_df], ignore_index=True)
-            # Check if the file size exceeds 50MB
-            if os.path.getsize("sismos_ipma.csv") > 50 * 1024 * 1024:  # 50MB in bytes
-                # Find the next available sequential file name
+            temp_path = "sismos_ipma.csv.tmp"
+            temp_df.to_csv(temp_path, index=False)
+
+            if os.path.getsize(temp_path) > 50 * 1024 * 1024:  # 50MB in bytes
                 i = 1
                 while os.path.exists(f"sismos_ipma_{i}.csv"):
                     i += 1
                 os.rename("sismos_ipma.csv", f"sismos_ipma_{i}.csv")
-                # Create a new file for new data
-                temp_df.to_csv("sismos_ipma.csv", index=False)
-                print(f"File size exceeded 50MB, existing data moved to sismos_ipma_{i}.csv, and new data written to sismos_ipma.csv.")
+                os.replace(temp_path, "sismos_ipma.csv")
+                print(
+                    f"File size exceeded 50MB, existing data moved to sismos_ipma_{i}.csv, and new data written to sismos_ipma.csv."
+                )
             else:
-                # If the file size is within limit, append the data
-                temp_df.to_csv("sismos_ipma.csv", index=False)
+                os.replace(temp_path, "sismos_ipma.csv")
                 print("New data found and appended to sismos_ipma.csv.")
         else:
             print("No new data found.")
